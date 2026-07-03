@@ -32,6 +32,15 @@ h1 {
   stroke-width: 2.2;
 }
 
+.icon-fallback {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.icon-btn svg + .icon-fallback {
+  display: none;
+}
+
 .tab {
   display: flex;
   align-items: center;
