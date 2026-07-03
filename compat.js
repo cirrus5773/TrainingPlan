@@ -3,6 +3,28 @@
     return Date.now() + '-' + Math.random().toString(36).slice(2, 10);
   }
 
+  function applyDialogFallbackStyles(dialog) {
+    dialog.style.position = 'fixed';
+    dialog.style.left = '50%';
+    dialog.style.top = '50%';
+    dialog.style.transform = 'translate(-50%, -50%)';
+    dialog.style.zIndex = '30';
+    dialog.style.display = 'block';
+    dialog.style.maxHeight = 'calc(100vh - 24px)';
+    dialog.style.overflow = 'auto';
+  }
+
+  function clearDialogFallbackStyles(dialog) {
+    dialog.style.position = '';
+    dialog.style.left = '';
+    dialog.style.top = '';
+    dialog.style.transform = '';
+    dialog.style.zIndex = '';
+    dialog.style.display = '';
+    dialog.style.maxHeight = '';
+    dialog.style.overflow = '';
+  }
+
   try {
     if (window.crypto && typeof window.crypto.randomUUID !== 'function') {
       Object.defineProperty(window.crypto, 'randomUUID', {
@@ -20,12 +42,14 @@
         dialog.showModal = function () {
           dialog.setAttribute('open', '');
           dialog.classList.add('fallback-open');
+          applyDialogFallbackStyles(dialog);
         };
       }
       if (typeof dialog.close !== 'function') {
         dialog.close = function () {
           dialog.removeAttribute('open');
           dialog.classList.remove('fallback-open');
+          clearDialogFallbackStyles(dialog);
         };
       }
     });
