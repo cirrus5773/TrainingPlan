@@ -1,0 +1,83 @@
+@media (max-width: 620px) {
+  body {
+    padding-bottom: 24px;
+  }
+
+  main {
+    padding-bottom: 32px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .tabs {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .tab {
+    min-height: 48px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #eef1ed;
+    color: var(--ink);
+    flex-direction: row;
+    gap: 6px;
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  .tab svg {
+    display: none;
+  }
+
+  .tab.active {
+    border-color: #9bc9b8;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .sync-toast {
+    bottom: 14px;
+    pointer-events: none;
+  }
+
+  dialog {
+    width: calc(100% - 16px);
+    max-height: calc(100dvh - 18px);
+  }
+
+  .settings {
+    max-height: calc(100dvh - 18px);
+    overflow: auto;
+  }
+
+  .dialog-actions {
+    gap: 8px;
+  }
+
+  .block,
+  .summary,
+  .routine li,
+  .food-list li,
+  .phase {
+    scroll-margin-top: 86px;
+  }
+}
