@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тренировки 2 месяца</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Дом · без оборудования · 8 недель</p>
+        <h1>План тренировок и калорий</h1>
+      </div>
+      <button id="settingsBtn" class="icon-btn" type="button" aria-label="Настройки синхронизации" title="Настройки">
+        ⚙
+      </button>
+    </header>
+
+    <main>
+      <section class="summary-grid" aria-label="Сводка">
+        <article class="summary">
+          <span>Сегодня</span>
+          <strong id="todayLabel">Неделя 1</strong>
+          <small id="phaseLabel">Вход</small>
+        </article>
+        <article class="summary">
+          <span>Калории</span>
+          <strong><span id="remainingCalories">2300</span> ккал</strong>
+          <small>осталось из <span id="dailyCalories">2300</span></small>
+        </article>
+        <article class="summary">
+          <span>Тренировки</span>
+          <strong id="doneWorkouts">0/2</strong>
+          <small>утро и вечер</small>
+        </article>
+        <article class="summary">
+          <span>Серия</span>
+          <strong id="streakDays">0 дней</strong>
+          <small>с выполненным днем</small>
+        </article>
+      </section>
+
+      <section class="controls" aria-label="Выбор дня">
+        <label>
+          Дата
+          <input id="dateInput" type="date" />
+        </label>
+        <label>
+          Неделя плана
+          <select id="weekSelect"></select>
+        </label>
+      </section>
+
+      <nav class="tabs" aria-label="Разделы">
+        <button class="tab active" type="button" data-tab="training">Тренировка</button>
+        <button class="tab" type="button" data-tab="food">Питание</button>
+        <button class="tab" type="button" data-tab="progress">Прогресс</button>
+        <button class="tab" type="button" data-tab="plan">План</button>
+      </nav>
+
+      <section id="training" class="panel active">
+        <div class="split">
+          <article class="block">
+            <div class="block-head">
+              <h2>Утро</h2>
+              <label class="checkline">
+                <input id="morningDone" type="checkbox" />
+                выполнено
+              </label>
+            </div>
+            <div id="morningPlan"></div>
+          </article>
+          <article class="block">
+            <div class="block-head">
+              <h2>Вечер</h2>
+              <label class="checkline">
+                <input id="eveningDone" type="checkbox" />
+                выполнено
+              </label>
+            </div>
+            <div id="eveningPlan"></div>
+          </article>
+        </div>
+        <article class="block">
+          <h2>Заметка дня</h2>
+          <textarea id="dayNote" rows="4" placeholder="Самочувствие, вес, что было тяжело..."></textarea>
+        </article>
+      </section>
+
+      <section id="food" class="panel">
+        <div class="split food-layout">
+          <article class="block">
+            <h2>Добавить еду</h2>
+            <form id="foodForm" class="food-form">
+              <input id="foodName" type="text" placeholder="Что съел" required />
+              <input id="foodCalories" type="number" inputmode="numeric" min="1" placeholder="ккал" required />
+              <button type="submit">Добавить</button>
+            </form>
+            <div class="macro-note">
+              <p><b>Белок:</b> 150-180 г/день</p>
+              <p><b>Жиры:</b> не ниже 60 г/день</p>
+              <p><b>Вода:</b> 2.5-3 л/день</p>
+            </div>
+          </article>
+          <article class="block">
+            <h2>За день</h2>
+            <ul id="foodList" class="food-list"></ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="progress" class="panel">
+        <div class="split">
+          <article class="block">
+            <h2>Вес</h2>
+            <form id="weightForm" class="food-form">
+              <input id="weightInput" type="number" inputmode="decimal" step="0.1" min="1" placeholder="кг" required />
+              <button type="submit">Записать</button>
+            </form>
+            <ul id="weightList" class="food-list"></ul>
+          </article>
+          <article class="block">
+            <h2>Выполнение</h2>
+            <div id="progressGrid" class="progress-grid"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="plan" class="panel">
+        <article class="block">
+          <h2>Фазы калорий</h2>
+          <div id="caloriePhases" class="phase-list"></div>
+        </article>
+        <article class="block">
+          <h2>Техника</h2>
+          <ul class="tips">
+            <li>Бёрпи: спину не проваливай, живот в тонусе.</li>
+            <li>Прыжки из приседа: мягкое приземление, колени не внутрь.</li>
+            <li>Планка: таз не проваливается и не задирается.</li>
+            <li>Приседания: пятки на полу, колени по направлению носков.</li>
+            <li>Вес отслеживай раз в неделю утром натощак.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <dialog id="settingsDialog">
+      <form method="dialog" class="settings">
+        <h2>Синхронизация Supabase</h2>
+        <p>
+          Без настроек сайт хранит данные только в этом браузере. Для синхронизации между телефоном и ПК
+          создай бесплатный проект Supabase, выполни SQL из файла <code>supabase.sql</code> и вставь URL + anon key.
+        </p>
+        <label>
+          Supabase URL
+          <input id="supabaseUrl" type="url" placeholder="https://xxxxx.supabase.co" />
+        </label>
+        <label>
+          Supabase anon key
+          <input id="supabaseKey" type="password" placeholder="eyJ..." />
+        </label>
+        <label>
+          Email для входа
+          <input id="loginEmail" type="email" placeholder="you@example.com" />
+        </label>
+        <div class="dialog-actions">
+          <button id="saveSettings" value="cancel" type="button">Сохранить</button>
+          <button id="loginBtn" value="cancel" type="button">Войти по email</button>
+          <button value="default">Закрыть</button>
+        </div>
+        <p id="syncStatus" class="status"></p>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
