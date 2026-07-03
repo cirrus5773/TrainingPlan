@@ -4,8 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Тренировки 2 месяца</title>
+    <meta name="theme-color" content="#f6f7f3" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Тренировки" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./mobile.css?v=1" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
     <header class="topbar">
@@ -14,7 +19,8 @@
         <h1>План тренировок и калорий</h1>
       </div>
       <button id="settingsBtn" class="icon-btn" type="button" aria-label="Настройки синхронизации" title="Настройки">
-        ⚙
+        <i data-lucide="settings" aria-hidden="true"></i>
+        <span class="sr-only">Настройки</span>
       </button>
     </header>
 
@@ -54,10 +60,22 @@
       </section>
 
       <nav class="tabs" aria-label="Разделы">
-        <button class="tab active" type="button" data-tab="training">Тренировка</button>
-        <button class="tab" type="button" data-tab="food">Питание</button>
-        <button class="tab" type="button" data-tab="progress">Прогресс</button>
-        <button class="tab" type="button" data-tab="plan">План</button>
+        <button class="tab active" type="button" data-tab="training">
+          <i data-lucide="dumbbell" aria-hidden="true"></i>
+          <span>Тренировка</span>
+        </button>
+        <button class="tab" type="button" data-tab="food">
+          <i data-lucide="utensils" aria-hidden="true"></i>
+          <span>Питание</span>
+        </button>
+        <button class="tab" type="button" data-tab="progress">
+          <i data-lucide="trending-up" aria-hidden="true"></i>
+          <span>Прогресс</span>
+        </button>
+        <button class="tab" type="button" data-tab="plan">
+          <i data-lucide="clipboard-list" aria-hidden="true"></i>
+          <span>План</span>
+        </button>
       </nav>
 
       <section id="training" class="panel active">
@@ -174,6 +192,13 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=2"></script>
+    <div id="syncToast" class="sync-toast" aria-live="polite"></div>
+
+    <script src="./app.js?v=4"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        if (window.lucide) window.lucide.createIcons();
+      });
+    </script>
   </body>
 </html>
