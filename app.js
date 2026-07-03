@@ -121,6 +121,7 @@ const SETTINGS_KEY = "training-app-settings-v1";
 const state = loadState();
 let supabaseClient = null;
 let currentUser = null;
+let authSubscription = null;
 
 const els = {
   dateInput: document.querySelector("#dateInput"),
@@ -175,12 +176,12 @@ async function init() {
 
   els.dateInput.addEventListener("change", () => {
     state.selectedDate = els.dateInput.value;
-    persist();
+    persist("Дата сохранена.");
     render();
   });
   els.weekSelect.addEventListener("change", () => {
     state.currentWeek = Number(els.weekSelect.value);
-    persist();
+    persist("Неделя сохранена.");
     render();
   });
   els.morningDone.addEventListener("change", () => setDayField("morningDone", els.morningDone.checked));
@@ -208,7 +209,7 @@ function getDay() {
 
 function setDayField(field, value) {
   getDay()[field] = value;
-  persist();
+  persist("Изменения сохранены.");
   render();
 }
 
@@ -257,7 +258,7 @@ function addFood(event) {
   getDay().foods.push({ id: crypto.randomUUID(), name, calories });
   els.foodName.value = "";
   els.foodCalories.value = "";
-  persist();
+  persist("Еда сохранена.");
   render();
 }
 
@@ -277,7 +278,7 @@ function renderFood(items) {
     button.title = "Удалить";
     button.addEventListener("click", () => {
       getDay().foods = getDay().foods.filter((food) => food.id !== item.id);
-      persist();
+      persist("Еда удалена.");
       render();
     });
     li.append(button);
@@ -291,7 +292,7 @@ function addWeight(event) {
   if (!value) return;
   state.weights.unshift({ id: crypto.randomUUID(), date: els.dateInput.value, value });
   els.weightInput.value = "";
-  persist();
+  persist("Вес сохранен.");
   render();
 }
 
@@ -354,13 +355,35 @@ function loadState() {
   return { currentWeek: 1, selectedDate: "", days: {}, weights: [] };
 }
 
-async function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  if (supabaseClient && currentUser) {
-    await supabaseClient
-      .from("training_state")
-      .upsert({ user_id: currentUser.id, payload: state, updated_at: new Date().toISOString() });
+async function persist(successMessage = "Сохранено.") {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    setSyncStatus(`Ошибка локального сохранения: ${error.message}`, true);
+    return false;
   }
+
+  if (!supabaseClient) {
+    setSyncStatus(`${successMessage} Облако не подключено, данные пока только в этом браузере.`);
+    return true;
+  }
+
+  if (!currentUser) {
+    setSyncStatus(`${successMessage} Для облака нужно войти по email.`);
+    return true;
+  }
+
+  const { error } = await supabaseClient
+    .from("training_state")
+    .upsert({ user_id: currentUser.id, payload: state, updated_at: new Date().toISOString() });
+
+  if (error) {
+    setSyncStatus(`Не удалось сохранить в Supabase: ${error.message}`, true);
+    return false;
+  }
+
+  setSyncStatus(`${successMessage} Облако синхронизировано: ${currentUser.email}`);
+  return true;
 }
 
 function openSettings() {
@@ -368,17 +391,17 @@ function openSettings() {
   els.supabaseUrl.value = settings.url || "";
   els.supabaseKey.value = settings.key || "";
   els.loginEmail.value = settings.email || "";
-  els.syncStatus.textContent = currentUser ? `Вход выполнен: ${currentUser.email}` : "Локальный режим";
+  setSyncStatus(currentUser ? `Вход выполнен: ${currentUser.email}` : "Локальный режим");
   els.settingsDialog.showModal();
 }
 
-function saveSettings() {
+async function saveSettings() {
   localStorage.setItem(
     SETTINGS_KEY,
     JSON.stringify({ url: els.supabaseUrl.value.trim(), key: els.supabaseKey.value.trim(), email: els.loginEmail.value.trim() })
   );
-  els.syncStatus.textContent = "Настройки сохранены. Теперь можно войти по email.";
-  setupSupabase();
+  setSyncStatus("Настройки сохранены. Проверяю подключение...");
+  await setupSupabase();
 }
 
 function loadSettings() {
@@ -389,38 +412,86 @@ function loadSettings() {
 async function setupSupabase() {
   const settings = loadSettings();
   if (!settings.url || !settings.key || !window.supabase) return;
-  supabaseClient = window.supabase.createClient(settings.url, settings.key);
-  const { data } = await supabaseClient.auth.getUser();
-  currentUser = data?.user || null;
-  if (currentUser) await pullRemoteState();
+
+  supabaseClient = window.supabase.createClient(settings.url, settings.key, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  if (authSubscription) {
+    authSubscription.unsubscribe();
+    authSubscription = null;
+  }
+
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError) {
+    setSyncStatus(`Ошибка входа Supabase: ${sessionError.message}`, true);
+    return;
+  }
+
+  currentUser = sessionData?.session?.user || null;
+
+  const { data: listener } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+    currentUser = session?.user || null;
+    if (currentUser) {
+      await pullRemoteState();
+      await persist("Вход выполнен.");
+    } else {
+      setSyncStatus("Локальный режим.");
+    }
+    render();
+  });
+  authSubscription = listener?.subscription || null;
+
+  if (currentUser) {
+    await pullRemoteState();
+    await persist("Подключение проверено.");
+  } else {
+    setSyncStatus("Supabase подключен. Теперь войди по email.");
+  }
 }
 
 async function login() {
-  saveSettings();
+  await saveSettings();
   if (!supabaseClient) {
-    els.syncStatus.textContent = "Сначала вставь URL и anon key Supabase.";
+    setSyncStatus("Сначала вставь URL и anon key Supabase.", true);
     return;
   }
   const email = els.loginEmail.value.trim();
   if (!email) {
-    els.syncStatus.textContent = "Укажи email.";
+    setSyncStatus("Укажи email.", true);
     return;
   }
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: location.href }
   });
-  els.syncStatus.textContent = error ? error.message : "Ссылка для входа отправлена на email.";
+  setSyncStatus(error ? `Ошибка отправки письма: ${error.message}` : "Ссылка для входа отправлена на email.", Boolean(error));
 }
 
 async function pullRemoteState() {
-  const { data } = await supabaseClient.from("training_state").select("payload").eq("user_id", currentUser.id).maybeSingle();
+  if (!supabaseClient || !currentUser) return;
+  const { data, error } = await supabaseClient.from("training_state").select("payload").eq("user_id", currentUser.id).maybeSingle();
+  if (error) {
+    setSyncStatus(`Не удалось загрузить данные Supabase: ${error.message}`, true);
+    return;
+  }
   if (data?.payload) {
     Object.assign(state, data.payload);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setSyncStatus(`Данные загружены из облака: ${currentUser.email}`);
   } else {
-    await persist();
+    await persist("Создана первая облачная запись.");
   }
+}
+
+function setSyncStatus(message, isError = false) {
+  if (!els.syncStatus) return;
+  els.syncStatus.textContent = message;
+  els.syncStatus.style.color = isError ? "#9f2d20" : "";
 }
 
 function formatDate(date) {
